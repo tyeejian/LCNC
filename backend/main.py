@@ -1,6 +1,6 @@
 from flask import request, jsonify, Flask
 import pandas as pd
-from operations import *
+# from operations import *
 from flask_cors import CORS
 # from matplotlib_ai.matplotlib_ai import matplotlib_ai
 from werkzeug.utils import secure_filename

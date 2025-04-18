@@ -68,7 +68,7 @@ function App() {
   const [selectedNode, setSelectedNode] = useState(null);
   // const [showResults, setShowResults] = useState(false);
   const [results, setResults] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [hasGraph, setHasGraph] = useState(false);
   const [graphCode, setGraphCode] = useState(null);
 
@@ -302,7 +302,9 @@ function App() {
               </Box>
 
               <Box sx={{ height: b_Height, padding: 2, backgroundColor: '#f5f5f5'}}>
-                {(!hasGraph && results && Array.isArray(results) && results.length > 0) ? 
+
+
+                { isLoading ? (<CircularProgress/>) : (!hasGraph && results && Array.isArray(results) && results.length > 0) ? 
                   (<>
                     <h3 style={{ marginBottom: '10px' }}>Execution Results</h3>
                     <DataGrid

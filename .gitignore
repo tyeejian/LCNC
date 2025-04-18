@@ -27,7 +27,8 @@ yarn-error.log*
 *.doc
 *.env
 *.jpg
-
+*.mov
+*.gif
 __pycache__/
 node_modules/
 ven/
