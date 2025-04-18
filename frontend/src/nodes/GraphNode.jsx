@@ -4,10 +4,6 @@ import axios from 'axios';
 
 function GraphNode({ id, data }) {
   const [prompt, setPrompt] = useState(data.prompt || '');
-  const [isLoading, setIsLoading] = useState(false);
-
-
-
   const reactFlow = useReactFlow();
   const allNodes = reactFlow.getNodes();
   const allEdges = reactFlow.getEdges();

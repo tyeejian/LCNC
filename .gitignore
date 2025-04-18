@@ -22,7 +22,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-.png
-.docx
-.doc
-.env
+*.png
+*.docx
+*.doc
+*.env
+*.jpg
+
+__pycache__/
+node_modules/
+ven/
