@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Low-Code Data Manipulation Tool</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/reactflow/11.7.4/reactflow.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+    
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    
+    .header {
+      background-color: #1a1a2e;
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+    
+    .content {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    .sidebar {
+      width: 240px;
+      background-color: #f5f5f7;
+      padding: 20px;
+      overflow-y: auto;
+      border-right: 1px solid #ddd;
+    }
+    
+    .flowchart-area {
+      flex: 1;
+      position: relative;
+    }
+    
+    .dndnode {
+      background: white;
+      border: 1px solid #1a1a2e;
+      border-radius: 5px;
+      padding: 10px;
+      margin-bottom: 10px;
+      cursor: grab;
+      transition: all 0.2s;
+    }
+    
+    .dndnode:hover {
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+    
+    .react-flow__node {
+      padding: 10px;
+      border-radius: 5px;
+      width: 150px;
+      font-size: 14px;
+      text-align: center;
+    }
+    
+    .react-flow__node-input {
+      background: #e6f7ff;
+      border: 1px solid #91d5ff;
+    }
+    
+    .react-flow__node-filter {
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+    }
+    
+    .react-flow__node-groupby {
+      background: #fff7e6;
+      border: 1px solid #ffd591;
+    }
+    
+    .react-flow__node-join {
+      background: #f9f0ff;
+      border: 1px solid #d3adf7;
+    }
+    
+    .react-flow__node-sort {
+      background: #fcffe6;
+      border: 1px solid #eaff8f;
+    }
+    
+    .react-flow__node-merge {
+      background: #fff2f0;
+      border: 1px solid #ffccc7;
+    }
+    
+    .react-flow__node-output {
+      background: #e6fffb;
+      border: 1px solid #87e8de;
+    }
+    
+    .node-options {
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      width: 250px;
+      z-index: 10;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    }
+    
+    .node-options h3 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    
+    .option-group {
+      margin-bottom: 15px;
+    }
+    
+    .option-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    
+    .option-group input,
+    .option-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .button {
+      background: #1a1a2e;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .button:hover {
+      background: #333356;
+    }
+    
+    .run-flow {
+      margin-left: 10px;
+    }
+    
+    .results-panel {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      width: 400px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 10;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    }
+    
+    .results-panel h3 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .results-panel pre {
+      background: #f5f5f7;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    
+    .close-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    const { useCallback, useRef, useState, useEffect } = React;
+    const { createRoot } = ReactDOM;
+    
+    const { 
+      ReactFlow, 
+      Background, 
+      Controls, 
+      MarkerType, 
+      useNodesState, 
+      useEdgesState, 
+      addEdge 
+    } = ReactFlowRenderer;
+    
+    const nodeTypes = {
+      input: 'input',
+      filter: 'filter',
+      groupby: 'groupby',
+      join: 'join',
+      sort: 'sort',
+      merge: 'merge',
+      output: 'output',
+      table: 'table'
+    };
+    
+    const initialNodes = [
+      {
+        id: '1',
+        type: 'input',
+        data: { label: 'Input', filePath: 'sample_data.csv' },
+        position: { x: 250, y: 100 },
+      },
+    ];
+    
+    const App = () => {
+      const reactFlowWrapper = useRef(null);
+      const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+      const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+      const [reactFlowInstance, setReactFlowInstance] = useState(null);
+      
+      const [selectedNode, setSelectedNode] = useState(null);
+      const [showResults, setShowResults] = useState(false);
+      const [results, setResults] = useState(null);
+      
+      const onConnect = useCallback((params) => {
+        setEdges((eds) => addEdge({
+          ...params,
+          markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
+          style: { strokeWidth: 2 }
+        }, eds));
+      }, [setEdges]);
+      
+      const onDragOver = useCallback((event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+      }, []);
+      
+      const onDrop = useCallback(
+        (event) => {
+          event.preventDefault();
+          
+          const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+          const type = event.dataTransfer.getData('application/reactflow');
+          
+          // Check if the dropped element is valid
+          if (typeof type === 'undefined' || !type) {
+            return;
+          }
+          
+          const position = reactFlowInstance.project({
+            x: event.clientX - reactFlowBounds.left,
+            y: event.clientY - reactFlowBounds.top,
+          });
+          
+          const newNodeId = `${nodes.length + 1}`;
+          let newNodeData = { label: type.charAt(0).toUpperCase() + type.slice(1) };
+          
+          // Add default properties based on node type
+          switch(type) {
+            case 'input':
+              newNodeData.filePath = 'sample_data.csv';
+              break;
+            case 'filter':
+              newNodeData.column = '';
+              newNodeData.condition = '==';
+              newNodeData.value = '';
+              break;
+            case 'groupby':
+              newNodeData.columns = [];
+              newNodeData.aggregation = 'sum';
+              newNodeData.aggregationColumn = '';
+              break;
+            case 'join':
+              newNodeData.rightTableId = '';
+              newNodeData.leftColumn = '';
+              newNodeData.rightColumn = '';
+              newNodeData.joinType = 'inner';
+              break;
+            case 'sort':
+              newNodeData.column = '';
+              newNodeData.order = 'asc';
+              break;
+            case 'output':
+              newNodeData.outputType = 'display';
+              break;
+          }
+          
+          const newNode = {
+            id: newNodeId,
+            type,
+            position,
+            data: newNodeData,
+          };
+          
+          setNodes((nds) => nds.concat(newNode));
+        },
+        [reactFlowInstance, nodes, setNodes]
+      );
+      
+      const onNodeClick = (event, node) => {
+        setSelectedNode(node);
+      };
+      
+      const onPaneClick = () => {
+        setSelectedNode(null);
+      };
+      
+      const updateNodeData = (id, newData) => {
+        setNodes((nds) =>
+          nds.map((node) => {
+            if (node.id === id) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  ...newData,
+                },
+              };
+            }
+            return node;
+          })
+        );
+      };
+      
+      const onDragStart = (event, nodeType) => {
+        event.dataTransfer.setData('application/reactflow', nodeType);
+        event.dataTransfer.effectAllowed = 'move';
+      };
+      
+      const executeFlow = () => {
+        // In a real application, we would send the flow to the backend
+        // Here we'll just mock the response
+        
+        // For demonstration purposes
+        const flowData = {
+          nodes: nodes,
+          edges: edges
+        };
+        
+        console.log('Executing flow:', flowData);
+        
+        // Mock a result response
+        const mockResult = {
+          columns: ['id', 'name', 'value'],
+          data: [
+            [1, 'Item A', 100],
+            [2, 'Item B', 250],
+            [3, 'Item C', 175],
+            [4, 'Item D', 320],
+          ]
+        };
+        
+        // In a real app, we would send the flow to the backend
+        // axios.post('/api/execute-flow', flowData)
+        //   .then(response => {
+        //     setResults(response.data);
+        //     setShowResults(true);
+        //   })
+        //   .catch(error => {
+        //     console.error('Error executing flow:', error);
+        //   });
+        
+        // Mock the API call
+        setTimeout(() => {
+          setResults(mockResult);
+          setShowResults(true);
+        }, 500);
+      };
+      
+      return (
+        <div className="app-container">
+          <div className="header">
+            <h1>Low-Code Data Manipulation Tool</h1>
+            <div>
+              <button className="button run-flow" onClick={executeFlow}>
+                Run Flow
+              </button>
+            </div>
+          </div>
+          <div className="content">
+            <div className="sidebar">
+              <h3>Nodes</h3>
+              <div 
+                className="dndnode" 
+                onDragStart={(event) => onDragStart(event, 'input')} 
+                draggable
+              >
+                Input
+              </div>
+              <div 
+                className="dndnode" 
+                onDragStart={(event) => onDragStart(event, 'filter')} 
+                draggable
+              >
+                Filter
+              </div>
+              <div 
+                className="dndnode" 
+                onDragStart={(event) => onDragStart(event, 'groupby')} 
+                draggable
+              >
+                Group By
+              </div>
+              <div 
+                className="dndnode" 
+                onDragStart={(event) => onDragStart(event, 'join')} 
+                draggable
+              >
+                Join
+              </div>
+              <div 
+                className="dndnode" 
+                onDragStart={(event) => onDragStart(event, 'sort')} 
+                draggable
+              >
+                Sort
+              </div>
+              <div 
+                className="dndnode" 
+                onDragStart={(event) => onDragStart(event, 'merge')} 
+                draggable
+              >
+                Merge
+              </div>
+              <div 
+                className="dndnode" 
+                onDragStart={(event) => onDragStart(event, 'output')} 
+                draggable
+              >
+                Output
+              </div>
+            </div>
+            <div className="flowchart-area" ref={reactFlowWrapper}>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                onInit={setReactFlowInstance}
+                onDrop={onDrop}
+                onDragOver={onDragOver}
+                onNodeClick={onNodeClick}
+                onPaneClick={onPaneClick}
+                fitView
+              >
+                <Background />
+                <Controls />
+              </ReactFlow>
+              
+              {selectedNode && (
+                <div className="node-options">
+                  <h3>Node Settings</h3>
+                  {selectedNode.type === 'input' && (
+                    <div className="option-group">
+                      <label>Data Source</label>
+                      <select
+                        value={selectedNode.data.filePath}
+                        onChange={(e) => updateNodeData(selectedNode.id, { filePath: e.target.value })}
+                      >
+                        <option value="sample_data.csv">sample_data.csv</option>
+                        <option value="customers.csv">customers.csv</option>
+                        <option value="orders.csv">orders.csv</option>
+                      </select>
+                    </div>
+                  )}
+                  
+                  {selectedNode.type === 'filter' && (
+                    <>
+                      <div className="option-group">
+                        <label>Column</label>
+                        <input
+                          type="text"
+                          value={selectedNode.data.column}
+                          onChange={(e) => updateNodeData(selectedNode.id, { column: e.target.value })}
+                          placeholder="e.g., age"
+                        />
+                      </div>
+                      <div className="option-group">
+                        <label>Condition</label>
+                        <select
+                          value={selectedNode.data.condition}
+                          onChange={(e) => updateNodeData(selectedNode.id, { condition: e.target.value })}
+                        >
+                          <option value="==">Equal to (==)</option>
+                          <option value="!=">Not equal to (!=)</option>
+                          <option value=">">Greater than ()</option>
+                          <option value=">=">Greater than or equal to ()</option>
+                          <option value="<">Less than (&lt;)</option>
+                          <option value="<=">Less than or equal to (&lt;=)</option>
+                          <option value="contains">Contains</option>
+                        </select>
+                      </div>
+                      <div className="option-group">
+                        <label>Value</label>
+                        <input
+                          type="text"
+                          value={selectedNode.data.value}
+                          onChange={(e) => updateNodeData(selectedNode.id, { value: e.target.value })}
+                          placeholder="e.g., 30"
+                        />
+                      </div>
+                    </>
+                  )}
+                  
+                  {selectedNode.type === 'groupby' && (
+                    <>
+                      <div className="option-group">
+                        <label>Group By Columns (comma separated)</label>
+                        <input
+                          type="text"
+                          value={selectedNode.data.columns.join(',')}
+                          onChange={(e) => updateNodeData(selectedNode.id, { columns: e.target.value.split(',').map(c => c.trim()) })}
+                          placeholder="e.g., category, region"
+                        />
+                      </div>
+                      <div className="option-group">
+                        <label>Aggregation</label>
+                        <select
+                          value={selectedNode.data.aggregation}
+                          onChange={(e) => updateNodeData(selectedNode.id, { aggregation: e.target.value })}
+                        >
+                          <option value="sum">Sum</option>
+                          <option value="avg">Average</option>
+                          <option value="count">Count</option>
+                          <option value="min">Min</option>
+                          <option value="max">Max</option>
+                        </select>
+                      </div>
+                      <div className="option-group">
+                        <label>Aggregation Column</label>
+                        <input
+                          type="text"
+                          value={selectedNode.data.aggregationColumn}
+                          onChange={(e) => updateNodeData(selectedNode.id, { aggregationColumn: e.target.value })}
+                          placeholder="e.g., sales"
+                        />
+                      </div>
+                    </>
+                  )}
+                  
+                  {selectedNode.type === 'join' && (
+                    <>
+                      <div className="option-group">
+                        <label>Right Table Source Node ID</label>
+                        <input
+                          type="text"
+                          value={selectedNode.data.rightTableId}
+                          onChange={(e) => updateNodeData(selectedNode.id, { rightTableId: e.target.value })}
+                          placeholder="e.g., 2"
+                        />
+                      </div>
+                      <div className="option-group">
+                        <label>Left Column</label>
+                        <input
+                          type="text"
+                          value={selectedNode.data.leftColumn}
+                          onChange={(e) => updateNodeData(selectedNode.id, { leftColumn: e.target.value })}
+                          placeholder="e.g., user_id"
+                        />
+                      </div>
+                      <div className="option-group">
+                        <label>Right Column</label>
+                        <input
+                          type="text"
+                          value={selectedNode.data.rightColumn}
+                          onChange={(e) => updateNodeData(selectedNode.id, { rightColumn: e.target.value })}
+                          placeholder="e.g., id"
+                        />
+                      </div>
+                      <div className="option-group">
+                        <label>Join Type</label>
+                        <select
+                          value={selectedNode.data.joinType}
+                          onChange={(e) => updateNodeData(selectedNode.id, { joinType: e.target.value })}
+                        >
+                          <option value="inner">Inner Join</option>
+                          <option value="left">Left Join</option>
+                          <option value="right">Right Join</option>
+                          <option value="outer">Full Outer Join</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+                  
+                  {selectedNode.type === 'sort' && (
+                    <>
+                      <div className="option-group">
+                        <label>Sort By Column</label>
+                        <input
+                          type="text"
+                          value={selectedNode.data.column}
+                          onChange={(e) => updateNodeData(selectedNode.id, { column: e.target.value })}
+                          placeholder="e.g., price"
+                        />
+                      </div>
+                      <div className="option-group">
+                        <label>Sort Order</label>
+                        <select
+                          value={selectedNode.data.order}
+                          onChange={(e) => updateNodeData(selectedNode.id, { order: e.target.value })}
+                        >
+                          <option value="asc">Ascending</option>
+                          <option value="desc">Descending</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+                  
+                  {selectedNode.type === 'merge' && (
+                    <div className="option-group">
+                      <label>Merge Type</label>
+                      <select
+                        value={selectedNode.data.mergeType}
+                        onChange={(e) => updateNodeData(selectedNode.id, { mergeType: e.target.value })}
+                      >
+                        <option value="concat">Concatenate</option>
+                        <option value="union">Union</option>
+                      </select>
+                    </div>
+                  )}
+                  
+                  {selectedNode.type === 'output' && (
+                    <div className="option-group">
+                      <label>Output Type</label>
+                      <select
+                        value={selectedNode.data.outputType}
+                        onChange={(e) => updateNodeData(selectedNode.id, { outputType: e.target.value })}
+                      >
+                        <option value="display">Display</option>
+                        <option value="csv">Export CSV</option>
+                        <option value="json">Export JSON</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {showResults && (
+                <div className="results-panel">
+                  <h3>
+                    Results
+                    <button className="close-button" onClick={() => setShowResults(false)}>×</button>
+                  </h3>
+                  <pre>
+                    {JSON.stringify(results, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+    
+    const root = createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
