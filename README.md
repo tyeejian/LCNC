@@ -23,6 +23,8 @@ npm i
 npm run start
 ```
 
+3. Navigate to the website at `localhost:3000`
+
 ### Backend
 
 1. Create virtual env
