@@ -34,15 +34,19 @@ python -m venv venv
 
 2. Activate virtual env
 ```
-source venv/bin/activate #windows: .\venv\bin\activate
+source venv/bin/activate #windows: .\venv\Scripts\activate
 ```
 
 3. Install dependencies
 ```
 pip install -r requirements.txt
 ```
+4. Create a `.env` file with the following
+```
+OPENAI_API_KEY=your_key_here
+```
 
-4. Run the app
+5. Run the app
 ```
 python main.py
 ```
