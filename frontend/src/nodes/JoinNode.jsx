@@ -1,5 +1,3 @@
-
-// nodes/JoinNode.jsx
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
 
