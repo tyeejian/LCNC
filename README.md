@@ -10,4 +10,47 @@ A low-code/no-code platform for data processing and use of LLM for data visualiz
 ![](./assets/sample%20run%202.gif)
 ![](./assets/sample%20run%204.gif)
 
+
+## How to run
+
+### Frontend
+1. Install dependencies
+```
+npm i
+```
+2. Run the app
+```
+npm run start
+```
+
+### Backend
+
+1. Create virtual env
+```
+python -m venv venv
+```
+> [!NOTe]
+> a virtualenv named "venv" is created in current directory
+
+2. Activate virtual env
+```
+source venv/bin/activate #windows: .\venv\bin\activate
+```
+
+3. Install dependencies
+```
+pip install -r requirements.txt
+```
+
+4. Run the app
+```
+python main.py
+```
+
 ## Known limitations
+- The TableNode does not limit the incoming source connection to only 1.
+- The graph shown is not fitted correctly onto the Box.
+- The prompt to the AI does not gives back a consistent output.
+- GroupByNode is not working correctly.
+- JoinNode is not working correctly.
+- The OpenAI model is not trained with the latest documentation of D3.js, hence some of the code generated is still using the old functions, which results in error when running.
